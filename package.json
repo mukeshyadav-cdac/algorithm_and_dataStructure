@@ -1,0 +1,20 @@
+{
+  "name": "algorithm_and_datastructure",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "npm run build && node dist/server.js",
+    "dev": "nodemon src/index.js --exec babel-node",
+    "build": "babel src -d dist",
+    "test": "mocha --compilers js:babel-register"
+  },
+  "author": "ashu.3333d@gmail.com",
+  "license": "ISC",
+  "devDependencies": {
+    "babel-cli": "^6.24.1",
+    "babel-preset-latest": "^6.24.1",
+    "mocha": "^3.4.2",
+    "nodemon": "^1.11.0"
+  }
+}
