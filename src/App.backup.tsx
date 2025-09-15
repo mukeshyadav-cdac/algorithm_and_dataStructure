@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Play, Pause, RotateCcw, Settings, Code, ChevronDown, TestTube, CheckCircle, XCircle, Clock, AlertCircle, Grid3X3, Calculator, TrendingUp, Target, Zap, Layers, ArrowRight, ArrowDown } from 'lucide-react';
+import { Play, Pause, RotateCcw, Settings, Code, ChevronDown, TestTube, CheckCircle, XCircle, Clock, Grid3X3, Calculator, TrendingUp, Target, ArrowRight } from 'lucide-react';
+import { MultipleSolutionsDemo } from './components/MultipleSolutionsDemo';
 
 interface Cell {
   value: number | string;
@@ -56,54 +57,13 @@ interface Algorithm {
 // Helper functions
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-const calculateUniquePaths = (m: number, n: number): number => {
-  const dp = Array(m).fill(null).map(() => Array(n).fill(0));
-  for (let i = 0; i < m; i++) dp[i][0] = 1;
-  for (let j = 0; j < n; j++) dp[0][j] = 1;
-  for (let i = 1; i < m; i++) {
-    for (let j = 1; j < n; j++) {
-      dp[i][j] = dp[i-1][j] + dp[i][j-1];
-    }
-  }
-  return dp[m-1][n-1];
-};
-
-const calculateLIS = (arr: number[]): number => {
-  if (arr.length === 0) return 0;
-  const dp = new Array(arr.length).fill(1);
-  for (let i = 1; i < arr.length; i++) {
-    for (let j = 0; j < i; j++) {
-      if (arr[i] > arr[j]) {
-        dp[i] = Math.max(dp[i], dp[j] + 1);
-      }
-    }
-  }
-  return Math.max(...dp);
-};
-
-const calculateMinPathSum = (grid: number[][]): number => {
-  const m = grid.length;
-  const n = grid[0].length;
-  const dp = Array(m).fill(null).map(() => Array(n).fill(0));
-  
-  dp[0][0] = grid[0][0];
-  for (let i = 1; i < m; i++) dp[i][0] = dp[i-1][0] + grid[i][0];
-  for (let j = 1; j < n; j++) dp[0][j] = dp[0][j-1] + grid[0][j];
-  
-  for (let i = 1; i < m; i++) {
-    for (let j = 1; j < n; j++) {
-      dp[i][j] = Math.min(dp[i-1][j], dp[i][j-1]) + grid[i][j];
-    }
-  }
-  return dp[m-1][n-1];
-};
-
-// Test runners (simplified - keeping JS working, others simulated)
-const createTestRunner = (algorithmId: string) => {
+// Enhanced multi-language test runner system
+const createJavaScriptTestRunner = (algorithmId: string) => {
   return async (code: string, testCases: TestCase[]): Promise<TestResult[]> => {
     const results: TestResult[] = [];
     
     try {
+      // Enhanced JavaScript execution with better error handling
       const func = new Function('return ' + code)();
       
       for (const testCase of testCases) {
@@ -153,6 +113,28 @@ const createTestRunner = (algorithmId: string) => {
     }
     
     return results;
+  };
+};
+
+// TypeScript test runner (transpiles to JavaScript)
+const createTypeScriptTestRunner = (algorithmId: string) => {
+  return async (code: string, testCases: TestCase[]): Promise<TestResult[]> => {
+    // For now, treat TypeScript like JavaScript (in real implementation, you'd transpile)
+    const jsCode = code.replace(/: \w+/g, '').replace(/\w+:/g, ''); // Basic type removal
+    return createJavaScriptTestRunner(algorithmId)(jsCode, testCases);
+  };
+};
+
+// Simulated test runner for display-only languages
+const createSimulatedTestRunner = (languageName: string) => {
+  return async (_code: string, testCases: TestCase[]): Promise<TestResult[]> => {
+    // Simulate test execution for educational purposes
+    return testCases.map((testCase) => ({
+      passed: false,
+      actual: null,
+      expected: testCase.expected,
+      error: `${languageName} execution not supported in browser. This is for educational display only.`
+    }));
   };
 };
 
@@ -216,13 +198,39 @@ const algorithms: Algorithm[] = [
         name: 'JavaScript',
         extension: 'js',
         runtimeStatus: 'ready',
-        testRunner: createTestRunner('uniquePaths'),
+        testRunner: createJavaScriptTestRunner('uniquePaths'),
         code: `function uniquePaths(m, n) {
+    // Initialize DP table
     const dp = Array(m).fill().map(() => Array(n).fill(0));
     
+    // Base cases: first row and column
     for (let i = 0; i < m; i++) dp[i][0] = 1;
     for (let j = 0; j < n; j++) dp[0][j] = 1;
     
+    // Fill DP table
+    for (let i = 1; i < m; i++) {
+        for (let j = 1; j < n; j++) {
+            dp[i][j] = dp[i-1][j] + dp[i][j-1];
+        }
+    }
+    
+    return dp[m-1][n-1];
+}`
+      },
+      {
+        name: 'TypeScript',
+        extension: 'ts',
+        runtimeStatus: 'ready',
+        testRunner: createTypeScriptTestRunner('uniquePaths'),
+        code: `function uniquePaths(m: number, n: number): number {
+    // Initialize DP table
+    const dp: number[][] = Array(m).fill(null).map(() => Array(n).fill(0));
+    
+    // Base cases: first row and column
+    for (let i = 0; i < m; i++) dp[i][0] = 1;
+    for (let j = 0; j < n; j++) dp[0][j] = 1;
+    
+    // Fill DP table
     for (let i = 1; i < m; i++) {
         for (let j = 1; j < n; j++) {
             dp[i][j] = dp[i-1][j] + dp[i][j-1];
@@ -236,18 +244,126 @@ const algorithms: Algorithm[] = [
         name: 'Python',
         extension: 'py',
         runtimeStatus: 'error',
-        testRunner: createTestRunner('uniquePaths'),
+        testRunner: createSimulatedTestRunner('Python'),
         code: `def unique_paths(m: int, n: int) -> int:
+    """
+    Find number of unique paths from top-left to bottom-right in grid.
+    
+    Args:
+        m: Number of rows
+        n: Number of columns
+    
+    Returns:
+        Number of unique paths
+    """
+    # Initialize DP table
     dp = [[0] * n for _ in range(m)]
     
-    for i in range(m): dp[i][0] = 1
-    for j in range(n): dp[0][j] = 1
+    # Base cases: first row and column
+    for i in range(m): 
+        dp[i][0] = 1
+    for j in range(n): 
+        dp[0][j] = 1
     
+    # Fill DP table
     for i in range(1, m):
         for j in range(1, n):
             dp[i][j] = dp[i-1][j] + dp[i][j-1]
     
     return dp[m-1][n-1]`
+      },
+      {
+        name: 'Java',
+        extension: 'java',
+        runtimeStatus: 'error',
+        testRunner: createSimulatedTestRunner('Java'),
+        code: `public class Solution {
+    /**
+     * Find number of unique paths from top-left to bottom-right in grid.
+     * 
+     * @param m Number of rows
+     * @param n Number of columns
+     * @return Number of unique paths
+     */
+    public int uniquePaths(int m, int n) {
+        // Initialize DP table
+        int[][] dp = new int[m][n];
+        
+        // Base cases: first row and column
+        for (int i = 0; i < m; i++) dp[i][0] = 1;
+        for (int j = 0; j < n; j++) dp[0][j] = 1;
+        
+        // Fill DP table
+        for (int i = 1; i < m; i++) {
+            for (int j = 1; j < n; j++) {
+                dp[i][j] = dp[i-1][j] + dp[i][j-1];
+            }
+        }
+        
+        return dp[m-1][n-1];
+    }
+}`
+      },
+      {
+        name: 'Go',
+        extension: 'go',
+        runtimeStatus: 'error',
+        testRunner: createSimulatedTestRunner('Go'),
+        code: `package main
+
+// uniquePaths finds number of unique paths from top-left to bottom-right in grid
+func uniquePaths(m int, n int) int {
+    // Initialize DP table
+    dp := make([][]int, m)
+    for i := range dp {
+        dp[i] = make([]int, n)
+    }
+    
+    // Base cases: first row and column
+    for i := 0; i < m; i++ {
+        dp[i][0] = 1
+    }
+    for j := 0; j < n; j++ {
+        dp[0][j] = 1
+    }
+    
+    // Fill DP table
+    for i := 1; i < m; i++ {
+        for j := 1; j < n; j++ {
+            dp[i][j] = dp[i-1][j] + dp[i][j-1]
+        }
+    }
+    
+    return dp[m-1][n-1]
+}`
+      },
+      {
+        name: 'Ruby',
+        extension: 'rb',
+        runtimeStatus: 'error',
+        testRunner: createSimulatedTestRunner('Ruby'),
+        code: `# Find number of unique paths from top-left to bottom-right in grid
+#
+# @param m [Integer] Number of rows
+# @param n [Integer] Number of columns
+# @return [Integer] Number of unique paths
+def unique_paths(m, n)
+  # Initialize DP table
+  dp = Array.new(m) { Array.new(n, 0) }
+  
+  # Base cases: first row and column
+  (0...m).each { |i| dp[i][0] = 1 }
+  (0...n).each { |j| dp[0][j] = 1 }
+  
+  # Fill DP table
+  (1...m).each do |i|
+    (1...n).each do |j|
+      dp[i][j] = dp[i-1][j] + dp[i][j-1]
+    end
+  end
+  
+  dp[m-1][n-1]
+end`
       }
     ]
   },
@@ -267,7 +383,7 @@ const algorithms: Algorithm[] = [
       { input: { coins: [2], amount: 3 }, expected: -1, description: "coins=[2], amount=3" },
       { input: { coins: [1], amount: 0 }, expected: 0, description: "amount=0" }
     ],
-    gridSetup: (rows: number, cols: number, params: any) => {
+    gridSetup: (_rows: number, _cols: number, params: any) => {
       const { amount, coins } = params;
       const grid: Cell[][] = Array(coins.length + 1).fill(null).map(() =>
         Array(amount + 1).fill(null).map(() => ({
@@ -323,12 +439,15 @@ const algorithms: Algorithm[] = [
         name: 'JavaScript',
         extension: 'js',
         runtimeStatus: 'ready',
-        testRunner: createTestRunner('coinChange'),
+        testRunner: createJavaScriptTestRunner('coinChange'),
         code: `function coinChange(coins, amount) {
+    // Initialize DP array with Infinity (impossible values)
     const dp = new Array(amount + 1).fill(Infinity);
-    dp[0] = 0;
+    dp[0] = 0; // Base case: 0 coins needed for amount 0
     
+    // For each coin denomination
     for (const coin of coins) {
+        // Update all amounts that can be made with this coin
         for (let i = coin; i <= amount; i++) {
             dp[i] = Math.min(dp[i], dp[i - coin] + 1);
         }
@@ -336,6 +455,155 @@ const algorithms: Algorithm[] = [
     
     return dp[amount] === Infinity ? -1 : dp[amount];
 }`
+      },
+      {
+        name: 'TypeScript',
+        extension: 'ts',
+        runtimeStatus: 'ready',
+        testRunner: createTypeScriptTestRunner('coinChange'),
+        code: `function coinChange(coins: number[], amount: number): number {
+    // Initialize DP array with Infinity (impossible values)
+    const dp: number[] = new Array(amount + 1).fill(Infinity);
+    dp[0] = 0; // Base case: 0 coins needed for amount 0
+    
+    // For each coin denomination
+    for (const coin of coins) {
+        // Update all amounts that can be made with this coin
+        for (let i = coin; i <= amount; i++) {
+            dp[i] = Math.min(dp[i], dp[i - coin] + 1);
+        }
+    }
+    
+    return dp[amount] === Infinity ? -1 : dp[amount];
+}`
+      },
+      {
+        name: 'Python',
+        extension: 'py',
+        runtimeStatus: 'error',
+        testRunner: createSimulatedTestRunner('Python'),
+        code: `def coin_change(coins: list[int], amount: int) -> int:
+    """
+    Find minimum coins needed to make a target amount.
+    
+    Args:
+        coins: List of coin denominations
+        amount: Target amount to make
+    
+    Returns:
+        Minimum number of coins needed, or -1 if impossible
+    """
+    # Initialize DP array with infinity (impossible values)
+    dp = [float('inf')] * (amount + 1)
+    dp[0] = 0  # Base case: 0 coins needed for amount 0
+    
+    # For each coin denomination
+    for coin in coins:
+        # Update all amounts that can be made with this coin
+        for i in range(coin, amount + 1):
+            dp[i] = min(dp[i], dp[i - coin] + 1)
+    
+    return dp[amount] if dp[amount] != float('inf') else -1`
+      },
+      {
+        name: 'Java',
+        extension: 'java',
+        runtimeStatus: 'error',
+        testRunner: createSimulatedTestRunner('Java'),
+        code: `public class Solution {
+    /**
+     * Find minimum coins needed to make a target amount.
+     * 
+     * @param coins Array of coin denominations
+     * @param amount Target amount to make
+     * @return Minimum number of coins needed, or -1 if impossible
+     */
+    public int coinChange(int[] coins, int amount) {
+        // Initialize DP array with max value (impossible values)
+        int[] dp = new int[amount + 1];
+        Arrays.fill(dp, Integer.MAX_VALUE);
+        dp[0] = 0; // Base case: 0 coins needed for amount 0
+        
+        // For each coin denomination
+        for (int coin : coins) {
+            // Update all amounts that can be made with this coin
+            for (int i = coin; i <= amount; i++) {
+                if (dp[i - coin] != Integer.MAX_VALUE) {
+                    dp[i] = Math.min(dp[i], dp[i - coin] + 1);
+                }
+            }
+        }
+        
+        return dp[amount] == Integer.MAX_VALUE ? -1 : dp[amount];
+    }
+}`
+      },
+      {
+        name: 'Go',
+        extension: 'go',
+        runtimeStatus: 'error',
+        testRunner: createSimulatedTestRunner('Go'),
+        code: `package main
+
+import "math"
+
+// coinChange finds minimum coins needed to make a target amount
+func coinChange(coins []int, amount int) int {
+    // Initialize DP array with infinity (impossible values)
+    dp := make([]int, amount+1)
+    for i := range dp {
+        dp[i] = math.MaxInt32
+    }
+    dp[0] = 0 // Base case: 0 coins needed for amount 0
+    
+    // For each coin denomination
+    for _, coin := range coins {
+        // Update all amounts that can be made with this coin
+        for i := coin; i <= amount; i++ {
+            if dp[i-coin] != math.MaxInt32 {
+                dp[i] = min(dp[i], dp[i-coin]+1)
+            }
+        }
+    }
+    
+    if dp[amount] == math.MaxInt32 {
+        return -1
+    }
+    return dp[amount]
+}
+
+func min(a, b int) int {
+    if a < b {
+        return a
+    }
+    return b
+}`
+      },
+      {
+        name: 'Ruby',
+        extension: 'rb',
+        runtimeStatus: 'error',
+        testRunner: createSimulatedTestRunner('Ruby'),
+        code: `# Find minimum coins needed to make a target amount
+#
+# @param coins [Array<Integer>] List of coin denominations
+# @param amount [Integer] Target amount to make
+# @return [Integer] Minimum number of coins needed, or -1 if impossible
+def coin_change(coins, amount)
+  # Initialize DP array with infinity (impossible values)
+  dp = Array.new(amount + 1, Float::INFINITY)
+  dp[0] = 0  # Base case: 0 coins needed for amount 0
+  
+  # For each coin denomination
+  coins.each do |coin|
+    # Update all amounts that can be made with this coin
+    (coin..amount).each do |i|
+      dp[i] = [dp[i], dp[i - coin] + 1].min
+    end
+  end
+  
+  dp[amount] == Float::INFINITY ? -1 : dp[amount]
+end`
       }
     ]
   },
@@ -354,7 +622,7 @@ const algorithms: Algorithm[] = [
       { input: { nums: [0, 1, 0, 3, 2, 3] }, expected: 4, description: "nums=[0,1,0,3,2,3]" },
       { input: { nums: [7, 7, 7, 7, 7, 7, 7] }, expected: 1, description: "all same elements" }
     ],
-    gridSetup: (rows: number, cols: number, params: any) => {
+    gridSetup: (_rows: number, _cols: number, params: any) => {
       const { nums } = params;
       const n = nums.length;
       const grid: Cell[][] = Array(2).fill(null).map(() =>
@@ -413,14 +681,17 @@ const algorithms: Algorithm[] = [
         name: 'JavaScript',
         extension: 'js',
         runtimeStatus: 'ready',
-        testRunner: createTestRunner('lis'),
+        testRunner: createJavaScriptTestRunner('lis'),
         code: `function lengthOfLIS(nums) {
     if (nums.length === 0) return 0;
     
+    // Initialize DP array: dp[i] = length of LIS ending at index i
     const dp = new Array(nums.length).fill(1);
     
+    // For each position, check all previous positions
     for (let i = 1; i < nums.length; i++) {
         for (let j = 0; j < i; j++) {
+            // If current element is larger, we can extend the subsequence
             if (nums[i] > nums[j]) {
                 dp[i] = Math.max(dp[i], dp[j] + 1);
             }
@@ -429,6 +700,166 @@ const algorithms: Algorithm[] = [
     
     return Math.max(...dp);
 }`
+      },
+      {
+        name: 'TypeScript',
+        extension: 'ts',
+        runtimeStatus: 'ready',
+        testRunner: createTypeScriptTestRunner('lis'),
+        code: `function lengthOfLIS(nums: number[]): number {
+    if (nums.length === 0) return 0;
+    
+    // Initialize DP array: dp[i] = length of LIS ending at index i
+    const dp: number[] = new Array(nums.length).fill(1);
+    
+    // For each position, check all previous positions
+    for (let i = 1; i < nums.length; i++) {
+        for (let j = 0; j < i; j++) {
+            // If current element is larger, we can extend the subsequence
+            if (nums[i] > nums[j]) {
+                dp[i] = Math.max(dp[i], dp[j] + 1);
+            }
+        }
+    }
+    
+    return Math.max(...dp);
+}`
+      },
+      {
+        name: 'Python',
+        extension: 'py',
+        runtimeStatus: 'error',
+        testRunner: createSimulatedTestRunner('Python'),
+        code: `def length_of_lis(nums: list[int]) -> int:
+    """
+    Find the length of the longest increasing subsequence.
+    
+    Args:
+        nums: List of integers
+    
+    Returns:
+        Length of the longest increasing subsequence
+    """
+    if not nums:
+        return 0
+    
+    # Initialize DP array: dp[i] = length of LIS ending at index i
+    dp = [1] * len(nums)
+    
+    # For each position, check all previous positions
+    for i in range(1, len(nums)):
+        for j in range(i):
+            # If current element is larger, we can extend the subsequence
+            if nums[i] > nums[j]:
+                dp[i] = max(dp[i], dp[j] + 1)
+    
+    return max(dp)`
+      },
+      {
+        name: 'Java',
+        extension: 'java',
+        runtimeStatus: 'error',
+        testRunner: createSimulatedTestRunner('Java'),
+        code: `public class Solution {
+    /**
+     * Find the length of the longest increasing subsequence.
+     * 
+     * @param nums Array of integers
+     * @return Length of the longest increasing subsequence
+     */
+    public int lengthOfLIS(int[] nums) {
+        if (nums.length == 0) return 0;
+        
+        // Initialize DP array: dp[i] = length of LIS ending at index i
+        int[] dp = new int[nums.length];
+        Arrays.fill(dp, 1);
+        
+        // For each position, check all previous positions
+        for (int i = 1; i < nums.length; i++) {
+            for (int j = 0; j < i; j++) {
+                // If current element is larger, we can extend the subsequence
+                if (nums[i] > nums[j]) {
+                    dp[i] = Math.max(dp[i], dp[j] + 1);
+                }
+            }
+        }
+        
+        return Arrays.stream(dp).max().orElse(1);
+    }
+}`
+      },
+      {
+        name: 'Go',
+        extension: 'go',
+        runtimeStatus: 'error',
+        testRunner: createSimulatedTestRunner('Go'),
+        code: `package main
+
+// lengthOfLIS finds the length of the longest increasing subsequence
+func lengthOfLIS(nums []int) int {
+    if len(nums) == 0 {
+        return 0
+    }
+    
+    // Initialize DP array: dp[i] = length of LIS ending at index i
+    dp := make([]int, len(nums))
+    for i := range dp {
+        dp[i] = 1
+    }
+    
+    // For each position, check all previous positions
+    for i := 1; i < len(nums); i++ {
+        for j := 0; j < i; j++ {
+            // If current element is larger, we can extend the subsequence
+            if nums[i] > nums[j] {
+                dp[i] = max(dp[i], dp[j]+1)
+            }
+        }
+    }
+    
+    result := 1
+    for _, val := range dp {
+        if val > result {
+            result = val
+        }
+    }
+    return result
+}
+
+func max(a, b int) int {
+    if a > b {
+        return a
+    }
+    return b
+}`
+      },
+      {
+        name: 'Ruby',
+        extension: 'rb',
+        runtimeStatus: 'error',
+        testRunner: createSimulatedTestRunner('Ruby'),
+        code: `# Find the length of the longest increasing subsequence
+#
+# @param nums [Array<Integer>] List of integers
+# @return [Integer] Length of the longest increasing subsequence
+def length_of_lis(nums)
+  return 0 if nums.empty?
+  
+  # Initialize DP array: dp[i] = length of LIS ending at index i
+  dp = Array.new(nums.length, 1)
+  
+  # For each position, check all previous positions
+  (1...nums.length).each do |i|
+    (0...i).each do |j|
+      # If current element is larger, we can extend the subsequence
+      if nums[i] > nums[j]
+        dp[i] = [dp[i], dp[j] + 1].max
+      end
+    end
+  end
+  
+  dp.max
+end`
       }
     ]
   },
@@ -448,7 +879,7 @@ const algorithms: Algorithm[] = [
       { input: { weights: [1, 3, 4, 5], values: [1, 4, 5, 7], capacity: 7 }, expected: 9, description: "weights=[1,3,4,5], values=[1,4,5,7], capacity=7" },
       { input: { weights: [2, 1, 3], values: [2, 1, 3], capacity: 4 }, expected: 4, description: "weights=[2,1,3], values=[2,1,3], capacity=4" }
     ],
-    gridSetup: (rows: number, cols: number, params: any) => {
+    gridSetup: (_rows: number, _cols: number, params: any) => {
       const { weights, capacity } = params;
       const n = weights.length;
       const grid: Cell[][] = Array(n + 1).fill(null).map(() =>
@@ -508,18 +939,21 @@ const algorithms: Algorithm[] = [
         name: 'JavaScript',
         extension: 'js',
         runtimeStatus: 'ready',
-        testRunner: createTestRunner('knapsack'),
+        testRunner: createJavaScriptTestRunner('knapsack'),
         code: `function knapsack(weights, values, capacity) {
     const n = weights.length;
+    // Create DP table: dp[i][w] = max value using first i items with weight limit w
     const dp = Array(n + 1).fill(null).map(() => Array(capacity + 1).fill(0));
     
+    // Fill DP table
     for (let i = 1; i <= n; i++) {
         for (let w = 1; w <= capacity; w++) {
             const weight = weights[i-1];
             const value = values[i-1];
             
-            dp[i][w] = dp[i-1][w]; // Don't take item
+            dp[i][w] = dp[i-1][w]; // Don't take current item
             
+            // If current item fits, consider taking it
             if (weight <= w) {
                 dp[i][w] = Math.max(dp[i][w], dp[i-1][w-weight] + value);
             }
@@ -528,6 +962,182 @@ const algorithms: Algorithm[] = [
     
     return dp[n][capacity];
 }`
+      },
+      {
+        name: 'TypeScript',
+        extension: 'ts',
+        runtimeStatus: 'ready',
+        testRunner: createTypeScriptTestRunner('knapsack'),
+        code: `function knapsack(weights: number[], values: number[], capacity: number): number {
+    const n = weights.length;
+    // Create DP table: dp[i][w] = max value using first i items with weight limit w
+    const dp: number[][] = Array(n + 1).fill(null).map(() => Array(capacity + 1).fill(0));
+    
+    // Fill DP table
+    for (let i = 1; i <= n; i++) {
+        for (let w = 1; w <= capacity; w++) {
+            const weight = weights[i-1];
+            const value = values[i-1];
+            
+            dp[i][w] = dp[i-1][w]; // Don't take current item
+            
+            // If current item fits, consider taking it
+            if (weight <= w) {
+                dp[i][w] = Math.max(dp[i][w], dp[i-1][w-weight] + value);
+            }
+        }
+    }
+    
+    return dp[n][capacity];
+}`
+      },
+      {
+        name: 'Python',
+        extension: 'py',
+        runtimeStatus: 'error',
+        testRunner: createSimulatedTestRunner('Python'),
+        code: `def knapsack(weights: list[int], values: list[int], capacity: int) -> int:
+    """
+    Solve 0/1 Knapsack problem to maximize value within weight capacity.
+    
+    Args:
+        weights: List of item weights
+        values: List of item values
+        capacity: Maximum weight capacity
+    
+    Returns:
+        Maximum value that can be obtained
+    """
+    n = len(weights)
+    # Create DP table: dp[i][w] = max value using first i items with weight limit w
+    dp = [[0] * (capacity + 1) for _ in range(n + 1)]
+    
+    # Fill DP table
+    for i in range(1, n + 1):
+        for w in range(1, capacity + 1):
+            weight = weights[i-1]
+            value = values[i-1]
+            
+            dp[i][w] = dp[i-1][w]  # Don't take current item
+            
+            # If current item fits, consider taking it
+            if weight <= w:
+                dp[i][w] = max(dp[i][w], dp[i-1][w-weight] + value)
+    
+    return dp[n][capacity]`
+      },
+      {
+        name: 'Java',
+        extension: 'java',
+        runtimeStatus: 'error',
+        testRunner: createSimulatedTestRunner('Java'),
+        code: `public class Solution {
+    /**
+     * Solve 0/1 Knapsack problem to maximize value within weight capacity.
+     * 
+     * @param weights Array of item weights
+     * @param values Array of item values
+     * @param capacity Maximum weight capacity
+     * @return Maximum value that can be obtained
+     */
+    public int knapsack(int[] weights, int[] values, int capacity) {
+        int n = weights.length;
+        // Create DP table: dp[i][w] = max value using first i items with weight limit w
+        int[][] dp = new int[n + 1][capacity + 1];
+        
+        // Fill DP table
+        for (int i = 1; i <= n; i++) {
+            for (int w = 1; w <= capacity; w++) {
+                int weight = weights[i-1];
+                int value = values[i-1];
+                
+                dp[i][w] = dp[i-1][w]; // Don't take current item
+                
+                // If current item fits, consider taking it
+                if (weight <= w) {
+                    dp[i][w] = Math.max(dp[i][w], dp[i-1][w-weight] + value);
+                }
+            }
+        }
+        
+        return dp[n][capacity];
+    }
+}`
+      },
+      {
+        name: 'Go',
+        extension: 'go',
+        runtimeStatus: 'error',
+        testRunner: createSimulatedTestRunner('Go'),
+        code: `package main
+
+// knapsack solves 0/1 Knapsack problem to maximize value within weight capacity
+func knapsack(weights []int, values []int, capacity int) int {
+    n := len(weights)
+    // Create DP table: dp[i][w] = max value using first i items with weight limit w
+    dp := make([][]int, n+1)
+    for i := range dp {
+        dp[i] = make([]int, capacity+1)
+    }
+    
+    // Fill DP table
+    for i := 1; i <= n; i++ {
+        for w := 1; w <= capacity; w++ {
+            weight := weights[i-1]
+            value := values[i-1]
+            
+            dp[i][w] = dp[i-1][w] // Don't take current item
+            
+            // If current item fits, consider taking it
+            if weight <= w {
+                dp[i][w] = max(dp[i][w], dp[i-1][w-weight]+value)
+            }
+        }
+    }
+    
+    return dp[n][capacity]
+}
+
+func max(a, b int) int {
+    if a > b {
+        return a
+    }
+    return b
+}`
+      },
+      {
+        name: 'Ruby',
+        extension: 'rb',
+        runtimeStatus: 'error',
+        testRunner: createSimulatedTestRunner('Ruby'),
+        code: `# Solve 0/1 Knapsack problem to maximize value within weight capacity
+#
+# @param weights [Array<Integer>] List of item weights
+# @param values [Array<Integer>] List of item values
+# @param capacity [Integer] Maximum weight capacity
+# @return [Integer] Maximum value that can be obtained
+def knapsack(weights, values, capacity)
+  n = weights.length
+  # Create DP table: dp[i][w] = max value using first i items with weight limit w
+  dp = Array.new(n + 1) { Array.new(capacity + 1, 0) }
+  
+  # Fill DP table
+  (1..n).each do |i|
+    (1..capacity).each do |w|
+      weight = weights[i-1]
+      value = values[i-1]
+      
+      dp[i][w] = dp[i-1][w]  # Don't take current item
+      
+      # If current item fits, consider taking it
+      if weight <= w
+        dp[i][w] = [dp[i][w], dp[i-1][w-weight] + value].max
+      end
+    end
+  end
+  
+  dp[n][capacity]
+end`
       }
     ]
   },
@@ -545,7 +1155,7 @@ const algorithms: Algorithm[] = [
       { input: { grid: [[1,3,1],[1,5,1],[4,2,1]] }, expected: 7, description: "3x3 grid" },
       { input: { grid: [[1,2,3],[4,5,6]] }, expected: 12, description: "2x3 grid" }
     ],
-    gridSetup: (rows: number, cols: number, params: any) => {
+    gridSetup: (_rows: number, _cols: number, params: any) => {
       const { gridData } = params;
       const m = gridData.length;
       const n = gridData[0].length;
@@ -602,21 +1212,27 @@ const algorithms: Algorithm[] = [
         name: 'JavaScript',
         extension: 'js',
         runtimeStatus: 'ready',
-        testRunner: createTestRunner('minPathSum'),
+        testRunner: createJavaScriptTestRunner('minPathSum'),
         code: `function minPathSum(grid) {
     const m = grid.length;
     const n = grid[0].length;
+    // Create DP table same size as grid
     const dp = Array(m).fill(null).map(() => Array(n).fill(0));
     
+    // Initialize starting point
     dp[0][0] = grid[0][0];
     
+    // Fill first column (can only come from above)
     for (let i = 1; i < m; i++) {
         dp[i][0] = dp[i-1][0] + grid[i][0];
     }
+    
+    // Fill first row (can only come from left)
     for (let j = 1; j < n; j++) {
         dp[0][j] = dp[0][j-1] + grid[0][j];
     }
     
+    // Fill rest of DP table
     for (let i = 1; i < m; i++) {
         for (let j = 1; j < n; j++) {
             dp[i][j] = Math.min(dp[i-1][j], dp[i][j-1]) + grid[i][j];
@@ -625,6 +1241,202 @@ const algorithms: Algorithm[] = [
     
     return dp[m-1][n-1];
 }`
+      },
+      {
+        name: 'TypeScript',
+        extension: 'ts',
+        runtimeStatus: 'ready',
+        testRunner: createTypeScriptTestRunner('minPathSum'),
+        code: `function minPathSum(grid: number[][]): number {
+    const m = grid.length;
+    const n = grid[0].length;
+    // Create DP table same size as grid
+    const dp: number[][] = Array(m).fill(null).map(() => Array(n).fill(0));
+    
+    // Initialize starting point
+    dp[0][0] = grid[0][0];
+    
+    // Fill first column (can only come from above)
+    for (let i = 1; i < m; i++) {
+        dp[i][0] = dp[i-1][0] + grid[i][0];
+    }
+    
+    // Fill first row (can only come from left)
+    for (let j = 1; j < n; j++) {
+        dp[0][j] = dp[0][j-1] + grid[0][j];
+    }
+    
+    // Fill rest of DP table
+    for (let i = 1; i < m; i++) {
+        for (let j = 1; j < n; j++) {
+            dp[i][j] = Math.min(dp[i-1][j], dp[i][j-1]) + grid[i][j];
+        }
+    }
+    
+    return dp[m-1][n-1];
+}`
+      },
+      {
+        name: 'Python',
+        extension: 'py',
+        runtimeStatus: 'error',
+        testRunner: createSimulatedTestRunner('Python'),
+        code: `def min_path_sum(grid: list[list[int]]) -> int:
+    """
+    Find minimum sum path from top-left to bottom-right.
+    
+    Args:
+        grid: 2D grid of non-negative integers
+    
+    Returns:
+        Minimum sum of path from top-left to bottom-right
+    """
+    m, n = len(grid), len(grid[0])
+    # Create DP table same size as grid
+    dp = [[0] * n for _ in range(m)]
+    
+    # Initialize starting point
+    dp[0][0] = grid[0][0]
+    
+    # Fill first column (can only come from above)
+    for i in range(1, m):
+        dp[i][0] = dp[i-1][0] + grid[i][0]
+    
+    # Fill first row (can only come from left)
+    for j in range(1, n):
+        dp[0][j] = dp[0][j-1] + grid[0][j]
+    
+    # Fill rest of DP table
+    for i in range(1, m):
+        for j in range(1, n):
+            dp[i][j] = min(dp[i-1][j], dp[i][j-1]) + grid[i][j]
+    
+    return dp[m-1][n-1]`
+      },
+      {
+        name: 'Java',
+        extension: 'java',
+        runtimeStatus: 'error',
+        testRunner: createSimulatedTestRunner('Java'),
+        code: `public class Solution {
+    /**
+     * Find minimum sum path from top-left to bottom-right.
+     * 
+     * @param grid 2D grid of non-negative integers
+     * @return Minimum sum of path from top-left to bottom-right
+     */
+    public int minPathSum(int[][] grid) {
+        int m = grid.length;
+        int n = grid[0].length;
+        // Create DP table same size as grid
+        int[][] dp = new int[m][n];
+        
+        // Initialize starting point
+        dp[0][0] = grid[0][0];
+        
+        // Fill first column (can only come from above)
+        for (int i = 1; i < m; i++) {
+            dp[i][0] = dp[i-1][0] + grid[i][0];
+        }
+        
+        // Fill first row (can only come from left)
+        for (int j = 1; j < n; j++) {
+            dp[0][j] = dp[0][j-1] + grid[0][j];
+        }
+        
+        // Fill rest of DP table
+        for (int i = 1; i < m; i++) {
+            for (int j = 1; j < n; j++) {
+                dp[i][j] = Math.min(dp[i-1][j], dp[i][j-1]) + grid[i][j];
+            }
+        }
+        
+        return dp[m-1][n-1];
+    }
+}`
+      },
+      {
+        name: 'Go',
+        extension: 'go',
+        runtimeStatus: 'error',
+        testRunner: createSimulatedTestRunner('Go'),
+        code: `package main
+
+// minPathSum finds minimum sum path from top-left to bottom-right
+func minPathSum(grid [][]int) int {
+    m, n := len(grid), len(grid[0])
+    // Create DP table same size as grid
+    dp := make([][]int, m)
+    for i := range dp {
+        dp[i] = make([]int, n)
+    }
+    
+    // Initialize starting point
+    dp[0][0] = grid[0][0]
+    
+    // Fill first column (can only come from above)
+    for i := 1; i < m; i++ {
+        dp[i][0] = dp[i-1][0] + grid[i][0]
+    }
+    
+    // Fill first row (can only come from left)
+    for j := 1; j < n; j++ {
+        dp[0][j] = dp[0][j-1] + grid[0][j]
+    }
+    
+    // Fill rest of DP table
+    for i := 1; i < m; i++ {
+        for j := 1; j < n; j++ {
+            dp[i][j] = min(dp[i-1][j], dp[i][j-1]) + grid[i][j]
+        }
+    }
+    
+    return dp[m-1][n-1]
+}
+
+func min(a, b int) int {
+    if a < b {
+        return a
+    }
+    return b
+}`
+      },
+      {
+        name: 'Ruby',
+        extension: 'rb',
+        runtimeStatus: 'error',
+        testRunner: createSimulatedTestRunner('Ruby'),
+        code: `# Find minimum sum path from top-left to bottom-right
+#
+# @param grid [Array<Array<Integer>>] 2D grid of non-negative integers
+# @return [Integer] Minimum sum of path from top-left to bottom-right
+def min_path_sum(grid)
+  m, n = grid.length, grid[0].length
+  # Create DP table same size as grid
+  dp = Array.new(m) { Array.new(n, 0) }
+  
+  # Initialize starting point
+  dp[0][0] = grid[0][0]
+  
+  # Fill first column (can only come from above)
+  (1...m).each do |i|
+    dp[i][0] = dp[i-1][0] + grid[i][0]
+  end
+  
+  # Fill first row (can only come from left)
+  (1...n).each do |j|
+    dp[0][j] = dp[0][j-1] + grid[0][j]
+  end
+  
+  # Fill rest of DP table
+  (1...m).each do |i|
+    (1...n).each do |j|
+      dp[i][j] = [dp[i-1][j], dp[i][j-1]].min + grid[i][j]
+    end
+  end
+  
+  dp[m-1][n-1]
+end`
       }
     ]
   }
@@ -645,6 +1457,7 @@ const AlgorithmVisualizer: React.FC = () => {
   const [showTests, setShowTests] = useState(false);
   const [customCode, setCustomCode] = useState('');
   const [algorithmParams, setAlgorithmParams] = useState<any>({});
+  const [showMultipleSolutions, setShowMultipleSolutions] = useState(false);
 
   const currentAlgorithm = algorithms[selectedAlgorithm];
   const currentLanguage = currentAlgorithm.languages[selectedLanguage] || currentAlgorithm.languages[0];
@@ -709,7 +1522,7 @@ const AlgorithmVisualizer: React.FC = () => {
   };
 
   const updateParam = (paramName: string, value: any) => {
-    setAlgorithmParams(prev => ({
+    setAlgorithmParams((prev: any) => ({
       ...prev,
       [paramName]: value
     }));
@@ -729,6 +1542,11 @@ const AlgorithmVisualizer: React.FC = () => {
   const passedTests = testResults.filter(r => r.passed).length;
   const totalTests = testResults.length;
 
+  // If multiple solutions mode is enabled, show the new demo
+  if (showMultipleSolutions) {
+    return <MultipleSolutionsDemo />;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50 p-4">
       <div className="max-w-7xl mx-auto">
@@ -737,9 +1555,35 @@ const AlgorithmVisualizer: React.FC = () => {
           <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
             Dynamic Programming Algorithm Visualizer
           </h1>
-          <p className="text-gray-600 text-lg">
+          <p className="text-gray-600 text-lg mb-4">
             Interactive visualization of classic DP algorithms with multi-language support
           </p>
+          
+          {/* View Toggle */}
+          <div className="flex justify-center items-center gap-4">
+            <button
+              onClick={() => setShowMultipleSolutions(false)}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                !showMultipleSolutions 
+                  ? 'bg-blue-600 text-white shadow-lg' 
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              Original View
+            </button>
+            
+            <button
+              onClick={() => setShowMultipleSolutions(true)}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+                showMultipleSolutions 
+                  ? 'bg-purple-600 text-white shadow-lg' 
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              <TrendingUp className="h-4 w-4" />
+              Multiple Solutions & Complexity Analysis
+            </button>
+          </div>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-6">
@@ -921,7 +1765,7 @@ const AlgorithmVisualizer: React.FC = () => {
                 >
                   {currentAlgorithm.languages.map((lang, index) => (
                     <option key={index} value={index}>
-                      {lang.name} {lang.runtimeStatus === 'ready' ? '✓' : lang.runtimeStatus === 'error' ? '⚠' : '⏳'}
+                      {lang.name} {lang.runtimeStatus === 'ready' ? '✅ Executable' : lang.runtimeStatus === 'error' ? '📚 Display Only' : '⏳ Loading'}
                     </option>
                   ))}
                 </select>
